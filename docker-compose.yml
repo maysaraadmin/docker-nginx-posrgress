@@ -20,14 +20,14 @@ services:
       retries: 5
 
   nginx:
-    image: nginx:latest               # Debian-based (not -alpine)
+    image: nginx:1.24               # Debian-based (not -alpine)
     container_name: nginx_web
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
-      - ./html:/usr/share/nginx/html:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./php:/var/www/php:ro
     networks:
       - app-network
     depends_on:
@@ -35,6 +35,19 @@ services:
         condition: service_healthy
       api:
         condition: service_started
+      php:
+        condition: service_started
+
+  php:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: php_fpm
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - ./php:/var/www/html
 
   api:
     build:
