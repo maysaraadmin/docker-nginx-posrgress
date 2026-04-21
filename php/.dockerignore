@@ -1,0 +1,59 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Logs
+*.log
+
+# Dependencies
+node_modules/
+vendor/
+
+# Moodle data
+moodledata/
+config.php
+
+# Documentation
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+COPYRIGHT.txt
+LICENSE.txt
+GPL.txt
+
+# Build tools
+composer.json
+composer.lock
+package.json
+Gruntfile.js
+.eslintrc
+.jshintignore
+.stylelintrc
+
+# Development files
+.phpstorm.meta.php
+.upgradenotes
+.github/
+.grunt/
+.scripts/
+
+# Tests
+tests/
+moodle/local/ci/
+moodle/admin/tool/phpunit/
+moodle/lib/phpunit/
+moodle/lib/testing/
+**/tests/
+**/test/
+
+# Unnecessary files
+**/*.md
+**/*.txt
+**/*.yml
+**/*.yaml
+**/.gitkeep
+**/.gitattributes
+**/.jshintignore
+**/.eslintrc
+**/.stylelintrc
