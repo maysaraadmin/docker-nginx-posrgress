@@ -35,14 +35,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# PHP configuration for Moodle
-RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/moodle.ini && \
-    echo "upload_max_filesize=100M" >> /usr/local/etc/php/conf.d/moodle.ini && \
-    echo "post_max_size=100M" >> /usr/local/etc/php/conf.d/moodle.ini && \
-    echo "max_input_vars=5000" >> /usr/local/etc/php/conf.d/moodle.ini && \
-    echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/moodle.ini && \
-    echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/moodle.ini && \
-    echo "zend.exception_ignore_args=1" >> /usr/local/etc/php/conf.d/moodle.ini
+# PHP configuration for Moodle - using environment variables
+RUN { \
+        echo "memory_limit=${PHP_MEMORY_LIMIT:-256M}"; \
+        echo "upload_max_filesize=${UPLOAD_MAX_FILESIZE:-100M}"; \
+        echo "post_max_size=${POST_MAX_SIZE:-100M}"; \
+        echo "max_input_vars=5000"; \
+        echo "max_execution_time=${PHP_MAX_EXECUTION_TIME:-300}"; \
+        echo "max_input_time=${PHP_MAX_EXECUTION_TIME:-300}"; \
+        echo "opcache.enable=1"; \
+        echo "opcache.memory_consumption=128"; \
+        echo "opcache.enable_cli=1"; \
+        echo "opcache.validate_timestamps=0"; \
+        echo "opcache.interned_strings_buffer=8"; \
+        echo "opcache.max_accelerated_files=4000"; \
+        echo "opcache.revalidate_freq=2"; \
+        echo "opcache.fast_shutdown=1"; \
+        echo "zend.exception_ignore_args=1"; \
+    } > /usr/local/etc/php/conf.d/moodle.ini
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -56,18 +66,12 @@ COPY php/www.conf /usr/local/etc/php-fpm.d/www.conf
 # Copy Moodle application files with correct ownership
 COPY --chown=www-data:www-data moodle/ /var/www/moodle/
 
-# Create and secure moodledata directory
-RUN mkdir -p /var/www/moodledata \
-    && chown www-data:www-data /var/www/moodledata \
-    && chmod 750 /var/www/moodledata
-
-# Create log directory and set proper permissions
-RUN mkdir -p /var/log \
+# Create directories and set permissions in single optimized RUN command
+RUN mkdir -p /var/www/moodledata /var/log \
     && touch /var/log/php-fpm-access.log /var/log/php-fpm-slow.log \
-    && chown www-data:www-data /var/log/*
-
-# Set minimal permissions (fastest approach)
-RUN chmod 755 /var/www/moodle
+    && chown www-data:www-data /var/www/moodledata /var/log /var/log/* \
+    && chmod 750 /var/www/moodledata \
+    && chmod 755 /var/www/moodle
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
