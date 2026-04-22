@@ -20,7 +20,7 @@ $CFG->dboptions = array(
 );
 
 // Site configuration
-$CFG->wwwroot   = 'https://localhost';
+$CFG->wwwroot   = 'http://localhost';
 $CFG->dataroot  = '/var/www/moodledata'; // Moodle data directory
 $CFG->admin     = 'admin';
 
