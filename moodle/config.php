@@ -10,21 +10,19 @@ $CFG->dbtype    = 'pgsql';        // postgresql, mariadb, mysql, mssql, oracle
 $CFG->dblibrary = 'native';     // 'native' only at the moment
 $CFG->dbhost    = 'postgres';     // database server hostname
 $CFG->dbname    = 'moodle';       // database name
-$CFG->dbuser    = 'moodle_admin';      // database username
-$CFG->dbpass    = 'SecureP@ssw0rd123!#MoodleDB2024'; // database password
+$CFG->dbuser    = trim(file_get_contents('/run/secrets/postgres_user'));      // database username
+$CFG->dbpass    = trim(file_get_contents('/run/secrets/postgres_password')); // database password
 $CFG->prefix     = 'mdl_';         // Prefix to use for all table names
 $CFG->dboptions = array(
     'dbpersist' => false,
     'dbsocket'  => false,
-    'dbport'    => '',
-    'dbcollation' => 'utf8mb4_unicode_ci',
+    'dbport' => '5432',
 );
 
 // Site configuration
-$CFG->wwwroot   = 'http://localhost';
+$CFG->wwwroot   = 'https://localhost';
 $CFG->dataroot  = '/var/www/moodledata'; // Moodle data directory
 $CFG->admin     = 'admin';
-$CFG->directorypermissions = 02777; // try 02777 on local systems
 
 // Security settings
 $CFG->passwordsaltmain = 'CHANGE_ME_IN_PRODUCTION_SALT_2024';
@@ -35,23 +33,26 @@ $CFG->cachetype = 'redis';
 $CFG->redis_server_host = 'redis';
 $CFG->redis_server_port = 6379;
 $CFG->redis_server_db = 0;
-$CFG->redis_server_auth = 'RedisSecureP@ss789!@#2024';
+$CFG->redis_server_auth = trim(file_get_contents('/run/secrets/redis_password'));
+$CFG->redis_server_timeout = 5;
 
 // Session configuration
 $CFG->session_handler = 'redis';
 $CFG->session_redis_host = 'redis';
 $CFG->session_redis_port = 6379;
 $CFG->session_redis_db = 1;
-$CFG->session_redis_auth = 'RedisSecureP@ss789!@#2024';
+$CFG->session_redis_auth = trim(file_get_contents('/run/secrets/redis_password'));
+$CFG->session_redis_timeout = 5;
+$CFG->session_timeout = 7200;
 
 // Debug settings - set to 0 for production
-$CFG->debug = (E_ALL & ~E_DEPRECATED);
-$CFG->debugdisplay = 1;
-$CFG->debugstringid = 1;
-$CFG->perfdebug = 15;
+$CFG->debug = 0;
+$CFG->debugdisplay = 0;
+$CFG->debugstringid = 0;
+$CFG->perfdebug = 0;
 $CFG->perfdebugdata = NULL;
 $CFG->debugdeveloper = false;
-$CFG->debugpageinfo = true;
+$CFG->debugpageinfo = false;
 $CFG->debugsmtp = false;
 $CFG->debugmailsmtp = false;
 

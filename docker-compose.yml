@@ -5,13 +5,27 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${POSTGRES_DB:-moodle}
+    secrets:
+      - postgres_user
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          memory: ${POSTGRES_MEMORY_LIMIT}
+        reservations:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - app-network
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -27,16 +41,43 @@ services:
     env_file: .env
     environment:
       MOODLE_DATA_DIR: /var/www/moodledata
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-1G}
+      PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME_SECONDS:-300}
+      UPLOAD_MAX_FILESIZE: ${UPLOAD_MAX_FILESIZE:-100M}
+      POST_MAX_SIZE: ${POST_MAX_SIZE:-100M}
+    secrets:
+      - postgres_user
+      - postgres_password
+      - redis_password
+    deploy:
+      resources:
+        limits:
+          memory: ${PHP_MEMORY_LIMIT}
+          cpus: '${PHP_CPU_LIMIT}'
+        reservations:
+          memory: ${PHP_MEMORY_LIMIT_RESERVATION}
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
-      - ./moodle:/var/www/moodle:rw
+      - ./moodle/config.php:/var/www/moodle/config.php:ro
+      - ./moodle/public:/var/www/moodle/public:ro
       - ./moodledata:/var/www/moodledata:rw
       - ./php/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
     networks:
-      - app-network
+      - backend
     depends_on:
       postgres:
         condition: service_healthy
-    # Healthcheck moved to Dockerfile to avoid duplication & conflicts
+    healthcheck:
+      test: ["CMD", "php-fpm", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   nginx:
     build: ./nginx
@@ -46,31 +87,50 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./moodle:/var/www/moodle
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./moodle/public:/var/www/moodle:ro
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
     depends_on:
       php:
         condition: service_healthy
     networks:
-      - app-network
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7
     container_name: redis_cache
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass-file /run/secrets/redis_password
+    secrets:
+      - redis_password
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MEMORY_LIMIT}
+        reservations:
+          memory: 256M
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - app-network
+      - backend
     env_file: .env
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
+      test: ["CMD", "redis-cli", "-a", "$(cat /run/secrets/redis_password)", "--no-auth-warning", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -82,20 +142,63 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     networks:
-      - app-network
+      - backend
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       ADMINER_DEFAULT_SERVER: postgres
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres-backup:
+    image: postgres:15
+    container_name: postgres_backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    secrets:
+      - postgres_user
+      - postgres_password
+    volumes:
+      - ./backups:/backups
+    networks:
+      - backend
+    command: >
+      sh -c "
+      while true; do
+        pg_dump -h postgres -U $$(cat /run/secrets/postgres_user) \
+        -d $$(cat /run/secrets/postgres_password) moodle > \
+        /backups/moodle_backup_$$(date +%Y%m%d_%H%M%S).sql
+        echo 'Backup completed at' $$(date)
+        sleep 86400
+      done
+      "
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
   certbot:
-    image: certbot/certbot:v5.5.0 # ✅ Fixed invalid v5.5.0 tag
+    image: certbot/certbot:v5.5.0 # Fixed invalid v5.5.0 tag
     container_name: certbot
     restart: unless-stopped
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+    depends_on:
+      nginx:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/etc/letsencrypt/live/${CERTBOT_DOMAIN}/fullchain.pem"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
     command: >
       sh -c "
       if [ ! -f /etc/letsencrypt/live/${CERTBOT_DOMAIN}/fullchain.pem ]; then
@@ -105,12 +208,23 @@ services:
       "
     env_file: .env
     networks:
-      - app-network
+      - backend
 
 volumes:
   postgres_data:
   redis_data:
 
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+
 networks:
-  app-network:
+  frontend:
     driver: bridge
+  backend:
+    driver: bridge
+    internal: true
