@@ -35,14 +35,14 @@ $CFG->cachetype = 'redis';
 $CFG->redis_server_host = 'redis';
 $CFG->redis_server_port = 6379;
 $CFG->redis_server_db = 0;
-$CFG->redis_server_auth = '';
+$CFG->redis_server_auth = 'RedisSecureP@ss789!@#2024';
 
 // Session configuration
 $CFG->session_handler = 'redis';
 $CFG->session_redis_host = 'redis';
 $CFG->session_redis_port = 6379;
 $CFG->session_redis_db = 1;
-$CFG->session_redis_auth = '';
+$CFG->session_redis_auth = 'RedisSecureP@ss789!@#2024';
 
 // Debug settings - set to 0 for production
 $CFG->debug = (E_ALL & ~E_DEPRECATED);
