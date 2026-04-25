@@ -28,21 +28,9 @@ $CFG->admin     = 'admin';
 $CFG->passwordsaltmain = 'CHANGE_ME_IN_PRODUCTION_SALT_2024';
 $CFG->siteidentifier = 'moodle_localhost_2024';
 
-// Performance settings
-$CFG->cachetype = 'redis';
-$CFG->redis_server_host = 'redis';
-$CFG->redis_server_port = 6379;
-$CFG->redis_server_db = 0;
-$CFG->redis_server_auth = trim(file_get_contents('/run/secrets/redis_password'));
-$CFG->redis_server_timeout = 5;
-
-// Session configuration
-$CFG->session_handler = 'redis';
-$CFG->session_redis_host = 'redis';
-$CFG->session_redis_port = 6379;
-$CFG->session_redis_db = 1;
-$CFG->session_redis_auth = trim(file_get_contents('/run/secrets/redis_password'));
-$CFG->session_redis_timeout = 5;
+// Performance settings - TEMPORARILY DISABLED
+$CFG->cachetype = 'file'; // Use file cache instead of Redis
+$CFG->session_handler = 'file'; // Use file sessions instead of Redis
 $CFG->session_timeout = 7200;
 
 // Debug settings - set to 0 for production
