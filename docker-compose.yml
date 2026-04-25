@@ -65,7 +65,7 @@ services:
         max-file: "3"
     volumes:
       - ./moodle/config.php:/var/www/moodle/config.php:ro
-      - ./moodle/public:/var/www/moodle/public:ro
+      - ./moodle:/var/www/moodle:ro
       - ./moodledata:/var/www/moodledata:rw
       - ./php/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
     networks:
@@ -89,7 +89,7 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./moodle/public:/var/www/moodle:ro
+      - ./moodle:/var/www/moodle:ro
     depends_on:
       php:
         condition: service_healthy
