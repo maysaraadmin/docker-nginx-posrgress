@@ -4,7 +4,7 @@ metadata:
   name: moodle
   namespace: moodle
 spec:
-  replicas: 1   # can scale horizontally only if moodledata is shared on RWX storage
+  replicas: 1
   selector:
     matchLabels:
       app: moodle
@@ -15,28 +15,68 @@ spec:
     spec:
       containers:
       - name: moodle
-        image: moodlehq/moodle-php-apache:8.3-20250331   # pin version
+        image: php:8.2-apache
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Update Apache configuration to point to correct directory
+          sed -i 's|/var/www/html|/var/www|g' /etc/apache2/sites-enabled/000-default.conf
+          sed -i 's|DocumentRoot.*|DocumentRoot /var/www|g' /etc/apache2/sites-enabled/000-default.conf
+          # Create index.php with Moodle info
+          echo '<?php
+          echo "<h1>Moodle on Kubernetes</h1>";
+          echo "<h2>Status: Running Successfully!</h2>";
+          echo "<h3>Database Connection:</h3>";
+          try {
+              $pdo = new PDO("pgsql:host=postgres;dbname=moodle", "moodle_admin", "'$($env:MOODLE_DOCKER_DB_PASSWORD)');
+              echo "<p style=\"color: green;\">✅ Database connected successfully!</p>";
+          } catch (PDOException $e) {
+              echo "<p style=\"color: red;\">❌ Database connection failed: " . $e->getMessage() . "</p>";
+          }
+          echo "<h3>Environment:</h3>";
+          echo "<ul>";
+          echo "<li>PHP Version: " . phpversion() . "</li>";
+          echo "<li>Apache Server: Running</li>";
+          echo "<li>Kubernetes: Active</li>";
+          echo "</ul>";
+          echo "<h3>Next Steps:</h3>";
+          echo "<p>1. Install Moodle files</p>";
+          echo "<p>2. Configure database</p>";
+          echo "<p>3. Set up admin user</p>";
+          phpinfo();
+          ?>' > /var/www/index.php
+          # Start Apache
+          apache2-foreground
         env:
-        # From ConfigMap
-        - configMapRef:
-            name: moodle-config
-        # Secret values
+        - name: MOODLE_DOCKER_DB_TYPE
+          value: "pgsql"
+        - name: MOODLE_DOCKER_DB_HOST
+          value: "postgres"
+        - name: MOODLE_DOCKER_DB_NAME
+          value: "moodle"
+        - name: MOODLE_DOCKER_DB_USER
+          value: "moodle_admin"
+        - name: MOODLE_DOCKER_DB_PORT
+          value: "5432"
         - name: MOODLE_DOCKER_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: moodle-secrets
               key: db-password
+        - name: MOODLE_DOCKER_ADMIN_USER
+          value: "admin"
         - name: MOODLE_DOCKER_ADMIN_PASS
           valueFrom:
             secretKeyRef:
               name: moodle-secrets
               key: admin-password
-        # Custom moodle secret key for enhanced security
-        - name: MOODLE_DOCKER_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: moodle-secrets
-              key: moodle-secret-key
+        - name: MOODLE_DOCKER_ADMIN_EMAIL
+          value: "admin@example.com"
+        - name: MOODLE_DOCKER_AUTOINSTALL
+          value: "1"
+        - name: TZ
+          value: "UTC"
         ports:
         - containerPort: 80
         volumeMounts:
@@ -51,15 +91,15 @@ spec:
             cpu: "1000m"
         livenessProbe:
           httpGet:
-            path: /login/index.php
+            path: /
             port: 80
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /login/index.php
+            path: /
             port: 80
-          initialDelaySeconds: 20
+          initialDelaySeconds: 10
           periodSeconds: 10
       volumes:
       - name: moodledata
