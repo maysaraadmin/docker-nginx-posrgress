@@ -1,0 +1,197 @@
+# Moodle Docker & Kubernetes Project .gitignore
+
+# === Moodle Data & Cache ===
+# Moodle data directory (contains user uploads, sessions, cache)
+moodledata/
+moodledata/*
+
+# Moodle local configuration and cache
+moodle/local/
+moodle/cache/
+moodle/sessions/
+moodle/temp/
+moodle/backups/
+
+# === Docker & Container Files ===
+# Docker volumes and temporary files
+*.log
+docker-compose.override.yml
+docker-compose.prod.yml
+.env.local
+.env.production
+
+# === Kubernetes Files ===
+# Kubernetes secrets and temporary files
+*.kubeconfig
+kubeconfig-*
+secrets.local.*
+
+# Minikube temporary files
+.minikube/
+minikube-*.pem
+
+# === IDE & Editor Files ===
+# Editor backup and temporary files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === OS Generated Files ===
+# Windows specific
+desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux specific
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# === Logs & Debug Files ===
+# Application logs
+logs/
+*.log
+debug.log
+error.log
+access.log
+nginx-error.log
+nginx-access.log
+php-error.log
+moodle-debug.log
+
+# === Temporary & Build Files ===
+# Build artifacts and temporary files
+build/
+dist/
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# === Database Files ===
+# Database dumps and exports
+*.sql
+*.sql.gz
+*.dump
+*.backup
+database-backups/
+
+# === SSL & Certificate Files ===
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+certificates/
+ssl/
+letsencrypt/
+
+# === Configuration Overrides ===
+# Local configuration overrides
+config.local.php
+config.override.php
+moodle/config.php
+nginx/conf.d/local/
+nginx/conf.d/override/
+
+# === Test Files ===
+# Test scripts and temporary test files
+test_*.php
+test_*.sh
+test_*.sql
+*.test.php
+
+# === Package Manager Files ===
+# Node.js, Composer, npm files
+node_modules/
+vendor/
+composer.lock
+package-lock.json
+yarn.lock
+
+# === Backup & Archive Files ===
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+backups/
+archives/
+
+# === Performance & Monitoring ===
+# Performance monitoring files
+profiling/
+xdebug/
+*.prof
+
+# === User Generated Content ===
+# User uploaded content (if not in moodledata)
+uploads/
+user_data/
+content/
+
+# === Development Tools ===
+# Development tool outputs
+coverage/
+phpunit/
+tests/output/
+behat/
+
+# === Security Sensitive Files ===
+# Files containing sensitive information
+*.key
+*.secret
+*.token
+passwords.txt
+secrets.txt
+credentials/
+
+# === Docker Specific ===
+# Docker specific ignores
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# === Kubernetes Specific ===
+# Kubernetes specific ignores
+helm/
+charts/crds/
+charts/templates/
+
+# === Moodle Plugin Development ===
+# Moodle plugin development files
+*.lock
+plugin.lock
+local_plugins/
+
+# === Keep Important Files ===
+# Explicitly keep important files (exceptions)
+!moodle/config.php.example
+!README.md
+!docker-compose.yml
+!moodle-k8s/
+!.gitkeep
+!docker-compose.prod.yml.example
+
+# === Documentation ===
+# Keep documentation files
+*.md
+!docs/
+!CHANGELOG.md
+!CONTRIBUTING.md
